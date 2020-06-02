@@ -1,0 +1,25 @@
+{
+  "name": "docker-semantic-release",
+  "version": "1.0.0",
+  "description": "A Docker image that includes semantic-release tools",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deliveroo/docker-semantic-release.git"
+  },
+  "author": "Jeffrey Lo <jeff.lo@deliveroo.com> (https://deliveroo.co.uk)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/deliveroo/docker-semantic-release/issues"
+  },
+  "homepage": "https://github.com/deliveroo/docker-semantic-release#readme",
+  "dependencies": {
+    "@commitlint/config-conventional": "^8.3.4",
+    "@semantic-release/changelog": "^5.0.1",
+    "commitlint": "^8.3.5",
+    "conventional-changelog-conventionalcommits": "^4.3.0",
+    "semantic-release": "^17.0.8"
+  }
+}

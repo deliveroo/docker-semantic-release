@@ -1,0 +1,77 @@
+version: 2
+
+workflows:
+  version: 2
+
+  build_and_push:
+    jobs:
+      - build
+      - lint
+      - release:
+          filters:
+            branches:
+              only:
+                - main
+          requires:
+            - build
+            - lint
+
+jobs:
+  release:
+    docker:
+      - image: circleci/node:12.16.1
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+          version: 18.06.0-ce
+      - checkout
+      - add_ssh_keys
+      - run: npm install conventional-changelog-conventionalcommits@4
+      - run: npm install @semantic-release/changelog@5
+      - run: npm install semantic-release-docker@2
+      - run: docker build -t deliveroo/semantic-release .
+      - run: npx semantic-release@17
+
+  lint:
+    docker:
+      - image: circleci/node:12.16.1
+    steps:
+      - checkout
+      - run: npm install @commitlint/config-conventional@8.3.4
+      - run: npm install @semantic-release/changelog@5
+      - run: npm install conventional-changelog-conventionalcommits@4
+      - run: npm install semantic-release-docker@2
+      - run: npx commitlint@8.3.5 --from $(git rev-parse origin/main) --to $CIRCLE_SHA1 --verbose
+      - run: npx semantic-release@17 --dry-run
+
+  build:
+    docker:
+      - image: circleci/node:12.16.1
+
+    steps:
+      # Require a version of docker with multi-stage builds.
+      - setup_remote_docker:
+          docker_layer_caching: true
+          reusable: true
+          version: 18.06.0-ce
+
+      # `git clone` to project directory.
+      - checkout
+
+      - run:
+          name: Build CI Image
+          command: |
+            docker build . -t "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
+
+      # Persist the image between steps by saving it to the workspace.
+      - run:
+          name: Save CI Image
+          command: |
+            mkdir -p workspace
+            docker save "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
+                --output "workspace/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_SHA1}.tar"
+
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - "*.tar"
