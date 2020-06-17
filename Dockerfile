@@ -1,5 +1,5 @@
 FROM node:14-alpine
-RUN apk add --no-cache git openssh-client
+RUN apk add --no-cache git openssh-client docker-cli
 COPY package.json .
 COPY package-lock.json .
 RUN npm set progress=false && \
