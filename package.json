@@ -18,6 +18,7 @@
   "dependencies": {
     "@commitlint/config-conventional": "^8.3.4",
     "@semantic-release/changelog": "^5.0.1",
+    "semantic-release-docker": "^2.2.0",
     "commitlint": "^8.3.5",
     "conventional-changelog-conventionalcommits": "^4.3.0",
     "semantic-release": "^17.0.8"
