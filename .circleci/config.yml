@@ -1,12 +1,26 @@
+# GLOBAL-ANCHORS - DockerHub Authentication changes applied - PROD-1431 / PROD-1435
+global_dockerhub_login: &global_dockerhub_login
+  run:
+    name: Authenticate with hub.docker.com - DockerHub
+    command: docker login -u $GLOBAL_DOCKERHUB_USERNAME -p $GLOBAL_DOCKERHUB_PASSWORD
+global_context: &global_context
+  context:
+    - org-global
+global_remote_docker: &global_remote_docker
+  version: 19.03.13
+global_dockerhub_auth: &global_dockerhub_auth
+  auth:
+    username: $GLOBAL_DOCKERHUB_USERNAME
+    password: $GLOBAL_DOCKERHUB_PASSWORD
 version: 2
-
 workflows:
   version: 2
-
   build_and_push:
     jobs:
-      - build
-      - lint
+      - build:
+          <<: *global_context
+      - lint:
+          <<: *global_context
       - release:
           filters:
             branches:
@@ -15,15 +29,17 @@ workflows:
           requires:
             - build
             - lint
-
+          <<: *global_context
 jobs:
   release:
     docker:
       - image: circleci/node:12.16.1
+        <<: *global_dockerhub_auth
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
-          version: 18.06.0-ce
+          <<: *global_remote_docker
+      - *global_dockerhub_login
       - checkout
       - add_ssh_keys
       - run: npm install conventional-changelog-conventionalcommits@4
@@ -31,11 +47,12 @@ jobs:
       - run: npm install semantic-release-docker@2
       - run: docker build -t deliveroo/semantic-release .
       - run: npx semantic-release@17
-
   lint:
     docker:
       - image: circleci/node:12.16.1
+        <<: *global_dockerhub_auth
     steps:
+      - *global_dockerhub_login
       - checkout
       - run: npm install @commitlint/config-conventional@8.3.4
       - run: npm install @semantic-release/changelog@5
@@ -43,26 +60,23 @@ jobs:
       - run: npm install semantic-release-docker@2
       - run: npx commitlint@8.3.5 --from $(git rev-parse origin/main) --to $CIRCLE_SHA1 --verbose
       - run: npx semantic-release@17 --dry-run
-
   build:
     docker:
       - image: circleci/node:12.16.1
-
+        <<: *global_dockerhub_auth
     steps:
       # Require a version of docker with multi-stage builds.
       - setup_remote_docker:
           docker_layer_caching: true
           reusable: true
-          version: 18.06.0-ce
-
+          <<: *global_remote_docker
       # `git clone` to project directory.
+      - *global_dockerhub_login
       - checkout
-
       - run:
           name: Build CI Image
           command: |
             docker build . -t "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}"
-
       # Persist the image between steps by saving it to the workspace.
       - run:
           name: Save CI Image
@@ -70,7 +84,6 @@ jobs:
             mkdir -p workspace
             docker save "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_SHA1}" \
                 --output "workspace/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_SHA1}.tar"
-
       - persist_to_workspace:
           root: workspace
           paths:
